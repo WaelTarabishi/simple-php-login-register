@@ -1,52 +1,43 @@
 <?php
-session_start();
-require_once 'db.php';
+require_once __DIR__ . '/classes/Database.php';
+require_once __DIR__ . '/classes/UserRepository.php';
+require_once __DIR__ . '/classes/AuthService.php';
+require_once __DIR__ . '/classes/LoginValidator.php';
 
-if (isset($_SESSION['user_id'])) {
-    header("Location: dashboard.php");
-    exit;
-}
+$db = new Database();
+$conn = $db->getConnection();
+$userRepository = new UserRepository($conn);
+$authService = new AuthService($userRepository);
+$validator = new LoginValidator();
 
-$error = "";
-$email = "";
+$authService->requireGuestRedirect('dashboard.php');
 
-if (isset($_COOKIE['remembered_email'])) {
-    $email = $_COOKIE['remembered_email'];
-}
+$error = '';
+$email = $_COOKIE['remembered_email'] ?? '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email']);
-    $password = $_POST['password'];
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-    if ($email === '' || $password === '') {
-        $error = "Email and password are required.";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = "Please enter a valid email.";
+    $errors = $validator->validate($email, $password);
+
+    if (!empty($errors)) {
+        $error = $errors[0];
     } else {
-        $sql = "SELECT id, full_name, email, password FROM users WHERE email = ?";
-        $stmt = mysqli_prepare($conn, $sql);
-        mysqli_stmt_bind_param($stmt, "s", $email);
-        mysqli_stmt_execute($stmt);
-        $result = mysqli_stmt_get_result($stmt);
+        $user = $userRepository->findByEmail($email);
 
-        if ($row = mysqli_fetch_assoc($result)) {
-            if (password_verify($password, $row['password'])) {
-                $_SESSION['user_id'] = $row['id'];
-                $_SESSION['full_name'] = $row['full_name'];
-                $_SESSION['email'] = $row['email'];
-
-                setcookie('remembered_email', $row['email'], time() + (86400 * 30), '/');
-
-                header("Location: dashboard.php");
-                exit;
-            } else {
-                $error = "Incorrect password.";
-            }
+        if ($user === null) {
+            $error = 'No account found with this email.';
+        } elseif (!password_verify($password, $user['password'])) {
+            $error = 'Incorrect password.';
         } else {
-            $error = "No account found with this email.";
-        }
+            $authService->login($user);
 
-        mysqli_stmt_close($stmt);
+            setcookie('remembered_email', $user['email'], time() + (86400 * 30), '/', '', false, true);
+
+            header('Location: dashboard.php');
+            exit;
+        }
     }
 }
 ?>
@@ -61,14 +52,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 <div class="container">
     <h2>Login</h2>
+    <p class="subtitle">Sign in to continue to your account.</p>
 
-    <?php if ($error !== ""): ?>
+    <?php if ($error !== ''): ?>
         <div class="message error"><?php echo htmlspecialchars($error); ?></div>
     <?php endif; ?>
 
     <form method="POST" action="">
-        <input type="email" name="email" placeholder="Email" value="<?php echo htmlspecialchars($email); ?>">
-        <input type="password" name="password" placeholder="Password">
+        <input type="email" name="email" placeholder="Email" autocomplete="email" value="<?php echo htmlspecialchars($email); ?>">
+        <input type="password" name="password" placeholder="Password" autocomplete="current-password">
         <button type="submit">Login</button>
     </form>
 

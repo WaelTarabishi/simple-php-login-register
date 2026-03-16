@@ -1,56 +1,43 @@
 <?php
-session_start();
-require_once 'db.php';
+require_once __DIR__ . '/classes/Database.php';
+require_once __DIR__ . '/classes/UserRepository.php';
+require_once __DIR__ . '/classes/AuthService.php';
+require_once __DIR__ . '/classes/RegisterValidator.php';
 
-if (isset($_SESSION['user_id'])) {
-    header("Location: dashboard.php");
-    exit;
-}
+$db = new Database();
+$conn = $db->getConnection();
+$userRepository = new UserRepository($conn);
+$authService = new AuthService($userRepository);
+$validator = new RegisterValidator();
 
-$error = "";
-$success = "";
-$full_name = "";
-$email = "";
+$authService->requireGuestRedirect('dashboard.php');
+
+$error = '';
+$success = '';
+$fullName = '';
+$email = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $full_name = trim($_POST['full_name']);
-    $email = trim($_POST['email']);
-    $password = $_POST['password'];
+    $fullName = trim($_POST['full_name'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-    if ($full_name === '' || $email === '' || $password === '') {
-        $error = "All fields are required.";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = "Please enter a valid email.";
-    } elseif (strlen($password) < 6) {
-        $error = "Password must be at least 6 characters.";
+    $errors = $validator->validate($fullName, $email, $password);
+
+    if (!empty($errors)) {
+        $error = $errors[0];
+    } elseif ($userRepository->findByEmail($email) !== null) {
+        $error = 'Email is already registered.';
     } else {
-        $check_sql = "SELECT id FROM users WHERE email = ?";
-        $check_stmt = mysqli_prepare($conn, $check_sql);
-        mysqli_stmt_bind_param($check_stmt, "s", $email);
-        mysqli_stmt_execute($check_stmt);
-        mysqli_stmt_store_result($check_stmt);
+        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
-        if (mysqli_stmt_num_rows($check_stmt) > 0) {
-            $error = "Email is already registered.";
+        if ($userRepository->create($fullName, $email, $hashedPassword)) {
+            $success = 'Registration successful. You can now login.';
+            $fullName = '';
+            $email = '';
         } else {
-            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-
-            $insert_sql = "INSERT INTO users (full_name, email, password) VALUES (?, ?, ?)";
-            $insert_stmt = mysqli_prepare($conn, $insert_sql);
-            mysqli_stmt_bind_param($insert_stmt, "sss", $full_name, $email, $hashed_password);
-
-            if (mysqli_stmt_execute($insert_stmt)) {
-                $success = "Registration successful. You can now login.";
-                $full_name = "";
-                $email = "";
-            } else {
-                $error = "Something went wrong. Please try again.";
-            }
-
-            mysqli_stmt_close($insert_stmt);
+            $error = 'Something went wrong. Please try again.';
         }
-
-        mysqli_stmt_close($check_stmt);
     }
 }
 ?>
@@ -65,19 +52,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 <div class="container">
     <h2>Register</h2>
+    <p class="subtitle">Create your account to access the dashboard.</p>
 
-    <?php if ($error !== ""): ?>
+    <?php if ($error !== ''): ?>
         <div class="message error"><?php echo htmlspecialchars($error); ?></div>
     <?php endif; ?>
 
-    <?php if ($success !== ""): ?>
+    <?php if ($success !== ''): ?>
         <div class="message success"><?php echo htmlspecialchars($success); ?></div>
     <?php endif; ?>
 
     <form method="POST" action="">
-        <input type="text" name="full_name" placeholder="Full Name" value="<?php echo htmlspecialchars($full_name); ?>">
-        <input type="email" name="email" placeholder="Email" value="<?php echo htmlspecialchars($email); ?>">
-        <input type="password" name="password" placeholder="Password">
+        <input type="text" name="full_name" placeholder="Full Name" autocomplete="name" value="<?php echo htmlspecialchars($fullName); ?>">
+        <input type="email" name="email" placeholder="Email" autocomplete="email" value="<?php echo htmlspecialchars($email); ?>">
+        <input type="password" name="password" placeholder="Password" autocomplete="new-password">
         <button type="submit">Create Account</button>
     </form>
 
