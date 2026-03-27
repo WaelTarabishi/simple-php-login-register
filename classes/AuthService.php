@@ -2,9 +2,9 @@
 
 class AuthService
 {
-    private SessionManager $sessionManager;
+    private SessionManagerInterface $sessionManager;
 
-    public function __construct(SessionManager $sessionManager)
+    public function __construct(SessionManagerInterface $sessionManager)
     {
         $this->sessionManager = $sessionManager;
     }

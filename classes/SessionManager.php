@@ -1,6 +1,6 @@
 <?php
 
-class SessionManager
+class SessionManager implements SessionManagerInterface
 {
     public function __construct()
     {

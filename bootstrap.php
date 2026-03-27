@@ -3,6 +3,7 @@
 require_once __DIR__ . '/classes/Database.php';
 require_once __DIR__ . '/classes/UserRepositoryInterface.php';
 require_once __DIR__ . '/classes/UserRepository.php';
+require_once __DIR__ . '/classes/SessionManagerInterface.php';
 require_once __DIR__ . '/classes/SessionManager.php';
 require_once __DIR__ . '/classes/AuthService.php';
 require_once __DIR__ . '/classes/CurrentUserService.php';
