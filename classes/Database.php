@@ -5,10 +5,10 @@ class Database
     private mysqli $connection;
 
     public function __construct(
-        string $host = 'localhost',
-        string $username = 'root',
-        string $password = 'StrongPassword123!',
-        string $database = 'simple_auth'
+        string $host,
+        string $username,
+        string $password,
+        string $database
     ) {
         $this->connection = new mysqli($host, $username, $password, $database);
 

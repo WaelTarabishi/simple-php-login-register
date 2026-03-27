@@ -1,15 +1,12 @@
 <?php
-require_once __DIR__ . '/classes/Database.php';
-require_once __DIR__ . '/classes/UserRepository.php';
-require_once __DIR__ . '/classes/AuthService.php';
-require_once __DIR__ . '/classes/LoginValidator.php';
+$app = require __DIR__ . '/bootstrap.php';
 
-$db = new Database();
-$conn = $db->getConnection();
-$userRepository = new UserRepository($conn);
-$authService = new AuthService($userRepository);
-$validator = new LoginValidator();
+$userRepository = $app['userRepository'];
+$authService = $app['authService'];
+$validator = $app['loginValidator'];
 
+
+// function just for redreicting logged in users away from login page
 $authService->requireGuestRedirect('dashboard.php');
 
 $error = '';
@@ -36,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             setcookie('remembered_email', $user['email'], time() + (86400 * 30), '/', '', false, true);
 
             header('Location: dashboard.php');
+            // critical 
             exit;
         }
     }

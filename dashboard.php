@@ -1,12 +1,7 @@
 <?php
-require_once __DIR__ . '/classes/Database.php';
-require_once __DIR__ . '/classes/UserRepository.php';
-require_once __DIR__ . '/classes/AuthService.php';
+$app = require __DIR__ . '/bootstrap.php';
 
-$db = new Database();
-$conn = $db->getConnection();
-$userRepository = new UserRepository($conn);
-$authService = new AuthService($userRepository);
+$authService = $app['authService'];
 
 $authService->requireAuthRedirect('login.php');
 

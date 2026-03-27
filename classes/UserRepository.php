@@ -1,6 +1,6 @@
 <?php
 
-class UserRepository
+class UserRepository implements UserRepositoryInterface
 {
     private mysqli $connection;
 
