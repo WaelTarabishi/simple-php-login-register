@@ -5,9 +5,10 @@ $userRepository = $app['userRepository'];
 $authService = $app['authService'];
 $validator = $app['loginValidator'];
 
-
-// function just for redreicting logged in users away from login page
-$authService->requireGuestRedirect('dashboard.php');
+if ($authService->isLoggedIn()) {
+    header('Location: dashboard.php');
+    exit;
+}
 
 $error = '';
 $email = $_COOKIE['remembered_email'] ?? '';
@@ -33,7 +34,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             setcookie('remembered_email', $user['email'], time() + (86400 * 30), '/', '', false, true);
 
             header('Location: dashboard.php');
-            // critical 
             exit;
         }
     }

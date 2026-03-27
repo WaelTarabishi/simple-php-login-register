@@ -5,7 +5,10 @@ $userRepository = $app['userRepository'];
 $authService = $app['authService'];
 $validator = $app['registerValidator'];
 
-$authService->requireGuestRedirect('dashboard.php');
+if ($authService->isLoggedIn()) {
+    header('Location: dashboard.php');
+    exit;
+}
 
 $error = '';
 $success = '';

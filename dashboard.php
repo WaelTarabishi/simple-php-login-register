@@ -2,10 +2,14 @@
 $app = require __DIR__ . '/bootstrap.php';
 
 $authService = $app['authService'];
+$currentUserService = $app['currentUserService'];
 
-$authService->requireAuthRedirect('login.php');
+if (!$authService->isLoggedIn()) {
+    header('Location: login.php');
+    exit;
+}
 
-$user = $authService->getCurrentUser();
+$user = $currentUserService->getCurrentUser();
 
 if ($user === null) {
     $authService->logout();
